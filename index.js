@@ -6,6 +6,7 @@ import cors from "cors"
 import fileupload from "express-fileupload";
 import {errorHandler} from "./middleware/errorHandler.js"
 import { AuthRouter } from "./router/authRouter.js"
+import { DeliveryRouter } from "./router/deliveryRouter.js"
 
 
 dotenv.config()
@@ -34,7 +35,11 @@ app.get("/", (req, res) => {
     res.send("WELCOME TO FOOD NINJA")
 })
 
+// This is the user section
 app.use("/api/v1/food-ninja/auth", AuthRouter)
+
+// This is the delivery section
+app.use("/api/v1/food-ninja/auth", DeliveryRouter)
 
 
 const server = async() => {

@@ -7,14 +7,26 @@ import fs from "fs";
 import { generateOTP } from "../libs/otp-generator.js";
 import { sendOtp } from "../utils/sendOtp.js";
 
-
 // sign up
 export const signUp = expressAsyncHandler(async (req, res) => {
-  const { email, password, firstName, lastName, phoneNumber, location } = req.body;
+  const { email, password, firstName, lastName, phoneNumber, location } =
+    req.body;
 
   // Check if the required fields are provided
-  if (!email || !password || !firstName || !lastName || !phoneNumber || !location) {
-    return res.status(400).json({ message: "Email, password, first name, last name, phone number, and location are required" });
+  if (
+    !email ||
+    !password ||
+    !firstName ||
+    !lastName ||
+    !phoneNumber ||
+    !location
+  ) {
+    return res
+      .status(400)
+      .json({
+        message:
+          "Email, password, first name, last name, phone number, and location are required",
+      });
   }
 
   // Check if the email already exists in the database
@@ -27,7 +39,8 @@ export const signUp = expressAsyncHandler(async (req, res) => {
   const hashedPassword = await bcryptjs.hash(password, 10);
 
   // Handle the photo upload if it exists
-  const photoImage = req.files && req.files.photo ? req.files.photo.tempFilePath : null;
+  const photoImage =
+    req.files && req.files.photo ? req.files.photo.tempFilePath : null;
 
   if (!photoImage) {
     return res.status(400).json({
@@ -52,7 +65,9 @@ export const signUp = expressAsyncHandler(async (req, res) => {
     fs.unlinkSync(photoImage);
   } catch (error) {
     // If there's an error uploading the image, return a message
-    return res.status(500).json({ message: "Error uploading photo", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Error uploading photo", error: error.message });
   }
 
   // Create a new user document
@@ -101,7 +116,6 @@ export const signUp = expressAsyncHandler(async (req, res) => {
   }
 });
 
-
 // sign in
 export const signIn = expressAsyncHandler(async (req, res) => {
   const { email, password } = req.body;
@@ -122,9 +136,7 @@ export const signIn = expressAsyncHandler(async (req, res) => {
     return res.status(400).json({ message: "Invalid email or password" });
   }
 
-  
-
-  res.status(200).json({ message: "Login successful", user: existingUser._id, });
+  res.status(200).json({ message: "Login successful", user: existingUser._id });
 });
 
 // update user details
@@ -151,13 +163,13 @@ export const userBio = expressAsyncHandler(async (req, res) => {
     req.files && req.files.photo ? req.files.photo.tempFilePath : null;
 
   if (!photoImage) {
-  return res.status(400).json({
-    success: false,
-    message: "No photo file received",
-  });
-}
+    return res.status(400).json({
+      success: false,
+      message: "No photo file received",
+    });
+  }
 
-console.log('Photo path:', photoImage);
+  console.log("Photo path:", photoImage);
 
   if (photoImage) {
     try {
@@ -171,11 +183,10 @@ console.log('Photo path:', photoImage);
       fs.unlinkSync(photoImage);
     } catch (error) {
       console.log(error);
-      
+
       return res
         .status(500)
         .json({ success: false, message: "Failed to upload profile picture" });
-       
     }
   }
 
@@ -184,12 +195,10 @@ console.log('Photo path:', photoImage);
     runValidators: true,
   });
 
-
   res
     .status(200)
     .json({ success: true, message: "User details updated successfully" });
 });
-
 
 // verify OTP
 export const verifyOTP = expressAsyncHandler(async (req, res) => {
@@ -198,7 +207,6 @@ export const verifyOTP = expressAsyncHandler(async (req, res) => {
   const user = await Auth.findById(userId);
 
   // console.log(user);
-  
 
   if (!user) {
     return res.status(404).json({ message: "User not found" });
@@ -206,7 +214,9 @@ export const verifyOTP = expressAsyncHandler(async (req, res) => {
 
   // Check if OTP is expired
   if (user.otpExpiration < Date.now()) {
-    return res.status(400).json({ message: "OTP has expired. Please request a new one." });
+    return res
+      .status(400)
+      .json({ message: "OTP has expired. Please request a new one." });
   }
 
   // Check if entered OTP matches the stored OTP
@@ -223,13 +233,18 @@ export const verifyOTP = expressAsyncHandler(async (req, res) => {
   //   expiresIn: "1h",
   // });
 
-  res.status(200).json({ message: "OTP verified successfully", success: true, user: user._id, });
+  res
+    .status(200)
+    .json({
+      message: "OTP verified successfully",
+      success: true,
+      user: user._id,
+    });
 });
-
 
 // Request new OTP
 export const requestNewOTP = expressAsyncHandler(async (req, res) => {
-  const { userId } = req.body; 
+  const { userId } = req.body;
 
   const user = await Auth.findById(userId);
 
@@ -251,7 +266,7 @@ export const requestNewOTP = expressAsyncHandler(async (req, res) => {
   await sendOtp({
     to: user.email,
     subject: "Your New OTP Code",
-    html: emailHtml
+    html: emailHtml,
   });
 
   res.status(200).json({ message: "New OTP sent to email" });
