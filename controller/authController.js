@@ -21,18 +21,22 @@ export const signUp = expressAsyncHandler(async (req, res) => {
     !phoneNumber ||
     !location
   ) {
-    return res
-      .status(400)
-      .json({
-        message:
-          "Email, password, first name, last name, phone number, and location are required",
-      });
+    return res.status(400).json({
+      message:
+        "Email, password, first name, last name, phone number, and location are required",
+    });
   }
 
   // Check if the email already exists in the database
   const existingUser = await Auth.findOne({ email });
   if (existingUser) {
     return res.status(400).json({ message: "Email already exists" });
+  }
+
+  if (password.length < 7) {
+    return res
+      .status(400)
+      .json({ message: "Password must be at least 7 characters long" });
   }
 
   // Hash the password
@@ -233,13 +237,11 @@ export const verifyOTP = expressAsyncHandler(async (req, res) => {
   //   expiresIn: "1h",
   // });
 
-  res
-    .status(200)
-    .json({
-      message: "OTP verified successfully",
-      success: true,
-      user: user._id,
-    });
+  res.status(200).json({
+    message: "OTP verified successfully",
+    success: true,
+    user: user._id,
+  });
 });
 
 // Request new OTP

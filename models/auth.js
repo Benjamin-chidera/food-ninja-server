@@ -1,45 +1,53 @@
-import mongoose, {Schema} from'mongoose';
+import mongoose, { Schema } from "mongoose";
 
-const authSchema = new Schema({
+const authSchema = new Schema(
+  {
     email: {
-        required: true,
-        type: String,
-        unique: true
+      required: true,
+      type: String,
+      unique: true,
     },
 
     password: {
-        required: true,
-        type: String,
-        minLemgth: 7
+      required: true,
+      type: String,
+      minLength: 7,
     },
 
     firstName: {
-        type: String
+      type: String,
     },
 
     lastName: {
-        type: String
+      type: String,
     },
 
     phoneNumber: {
-        type: String
+      type: String,
     },
- 
-    photo:{
-        type: String
+
+    photo: {
+      type: String,
     },
 
     location: {
-        type: String
+      type: String,
     },
 
     otp: {
-        type: Number
+      type: Number,
     },
-    
-    otpExpiration: { type: Date }
-}, {
-    timestamps: true
-})
 
-export const Auth = mongoose.model('Auth', authSchema);
+    role: {
+      type: String,
+      default: "Customer",
+    },
+
+    otpExpiration: { type: Date },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+export const Auth = mongoose.model("Auth", authSchema);

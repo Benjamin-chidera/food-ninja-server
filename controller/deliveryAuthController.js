@@ -21,6 +21,12 @@ export const registerDelivery = expressAsyncHandler(async (req, res) => {
     return res.status(400).json({ message: "Email already exists" });
   }
 
+  if (password.length < 7) {
+    return res
+      .status(400)
+      .json({ message: "Password must be at least 7 characters long" });
+  }
+
   const hashedPassword = await bcrypt.hash(password, 10);
 
   const delivery = new Delivery({

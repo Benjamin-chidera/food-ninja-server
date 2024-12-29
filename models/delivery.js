@@ -45,15 +45,19 @@ const DeliverySchema = new Schema(
     country: {
       type: String,
     },
-    postalCode: {
-      type: String,
-    },
+
     otp: {
       type: Number,
     },
 
     otpExpiration: { type: Date },
+
+    role: {
+      type: String,
+      default: "Delivery Person",
+    },
   },
+
   {
     timestamps: true,
   }
