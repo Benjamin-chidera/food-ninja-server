@@ -141,43 +141,42 @@ export const signIn = expressAsyncHandler(async (req, res) => {
     return res.status(400).json({ message: "Invalid email or password" });
   }
 
-  res.status(200).json({ message: "Login successful", user: existingUser._id });
+  res.status(200).json({
+    message: "Login successful",
+    user: existingUser._id,
+    success: true,
+  });
 });
 
 // update user details
 export const userBio = expressAsyncHandler(async (req, res) => {
   const { userId } = req.params;
-  const { firstName, lastName, phoneNumber, location } = req.body;
+  const { firstName, lastName, phoneNumber, location, email, password } = req.body;
+
+  const existingUser = await Auth.findById(userId);
+  if (!existingUser) {
+    return res.status(404).json({ message: "User not found" });
+  }
 
   const userDetails = {};
 
-  if (firstName) {
-    userDetails.firstName = firstName;
-  }
-  if (lastName) {
-    userDetails.lastName = lastName;
-  }
-  if (phoneNumber) {
-    userDetails.phoneNumber = phoneNumber;
-  }
-  if (location) {
-    userDetails.location = location;
-  }
+  if (firstName) userDetails.firstName = firstName;
+  if (lastName) userDetails.lastName = lastName;
+  if (phoneNumber) userDetails.phoneNumber = phoneNumber;
+  if (location) userDetails.location = location;
+  if (email) userDetails.email = email;
 
-  const photoImage =
-    req.files && req.files.photo ? req.files.photo.tempFilePath : null;
+  if (req.files && req.files.photo) {
+    const photoImage = req.files.photo.tempFilePath;
 
-  if (!photoImage) {
-    return res.status(400).json({
-      success: false,
-      message: "No photo file received",
-    });
-  }
-
-  console.log("Photo path:", photoImage);
-
-  if (photoImage) {
     try {
+      // Delete the existing photo from Cloudinary if it exists
+      if (existingUser.photo) {
+        const publicId = existingUser.photo.split('/').pop().split('.')[0]; // Extract public ID from the URL
+        await cloudinary.uploader.destroy(`food-ninja/${publicId}`);
+      }
+
+      // Upload the new photo
       const photoImg = await cloudinary.uploader.upload(photoImage, {
         folder: "food-ninja",
         use_filename: true,
@@ -187,22 +186,50 @@ export const userBio = expressAsyncHandler(async (req, res) => {
       userDetails.photo = photoImg.secure_url;
       fs.unlinkSync(photoImage);
     } catch (error) {
-      console.log(error);
-
+      console.error("Photo Upload Error:", error);
       return res
         .status(500)
-        .json({ success: false, message: "Failed to upload profile picture" });
+        .json({ message: "Failed to upload profile picture" });
     }
   }
 
-  const updatedUser = await Auth.findByIdAndUpdate(userId, userDetails, {
-    new: true,
-    runValidators: true,
-  });
+  if (password) {
+    if (await bcryptjs.compare(password, existingUser.password)) {
+      return res.status(400).json({
+        message: "The new password cannot be the same as the old password",
+      });
+    }
+    userDetails.password = await bcryptjs.hash(password, 10);
+  }
 
-  res
-    .status(200)
-    .json({ success: true, message: "User details updated successfully" });
+  try {
+    const updatedUser = await Auth.findByIdAndUpdate(userId, userDetails, {
+      new: true,
+      runValidators: true,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "User details updated successfully",
+      data: updatedUser,
+    });
+  } catch (error) {
+    console.error("Update Error:", error);
+    res.status(500).json({ message: "Failed to update user details" });
+  }
+});
+
+
+export const getUser = expressAsyncHandler(async (req, res) => {
+  const { userId } = req.params;
+
+  const user = await Auth.findById(userId);
+
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+
+  return res.status(200).json({ success: true, user });
 });
 
 // verify OTP
@@ -289,6 +316,7 @@ export const forgottenPassword = expressAsyncHandler(async (req, res) => {
     res.status(200).json({
       success: true,
       msg: "Email is VERIFIED successfully",
+      user: user._id,
     });
   } catch (error) {
     console.error("Error verifying email:", error);
@@ -303,31 +331,71 @@ export const resetPassword = expressAsyncHandler(async (req, res) => {
 
   const { password } = req.body;
 
-  const user = await Auth.findById(userId);
+  try {
+    const user = await Auth.findById(userId);
 
-  if (!user) {
-    throw new Error({ msg: "user not found" });
+    if (!user) {
+      throw new Error({ msg: "user not found" });
+    }
+
+    if (password.length < 7) {
+      return res
+        .status(400)
+        .json({ message: "Password must be at least 7 characters long" });
+    }
+
+    const hashedPassword = await bcryptjs.hash(password, 10);
+
+    user.password = hashedPassword;
+
+    await user.save();
+
+    const msg = "You can login with your new password";
+
+    await sendEmail({
+      to: user.email,
+      subject: `There ${user.firstName} ${user.lastName}, your Password was reset successful`,
+      html: msg,
+    });
+
+    res
+      .status(200)
+      .json({ msg: "Password successfully changed", success: true });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      success: false,
+      error: "Internal server error",
+      message: error.message,
+    });
   }
+});
 
-  if (password.length < 7) {
-    return res
-      .status(400)
-      .json({ message: "Password must be at least 7 characters long" });
+export const deleteUserAccount = expressAsyncHandler(async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const User = await Auth.findByIdAndDelete(userId);
+
+    if (!User) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Delete the existing photo from Cloudinary if it exists
+    if (User.photo) {
+      const publicId = User.photo.split('/').pop().split('.')[0]; // Extract public ID from the URL
+      await cloudinary.uploader.destroy(`food-ninja/${publicId}`);
+    }
+
+    res
+      .status(200)
+      .json({ message: "User account deleted successfully", success: true });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      success: false,
+      error: "Internal server error",
+      message: error.message,
+    });
   }
-
-  const hashedPassword = await bcryptjs.hash(password, 10);
-
-  user.password = hashedPassword;
-
-  await user.save();
-
-  const msg = "You can logout and login with your new password";
-
-  await sendEmail({
-    to: user.email,
-    subject: `There ${user.firstName} ${user.lastName}, your Password was reset successful`,
-    html: msg,
-  });
-
-  res.status(200).json({ msg: "Password successfully changed", success: true });
 });
