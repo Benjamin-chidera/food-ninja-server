@@ -8,11 +8,21 @@ import { errorHandler } from "./middleware/errorHandler.js";
 import { AuthRouter } from "./router/authRouter.js";
 import { DeliveryRouter } from "./router/deliveryRouter.js";
 import { AdminRouter } from "./router/adminRouter.js";
+import { FoodRouter } from "./router/admin/foodRouter.js";
+import { createServer } from "http";
+import { Server } from "socket.io";
 
 dotenv.config();
 
 const PORT = 3000;
 const app = express();
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: "*", // Allow all origins (adjust as needed)
+    methods: ["GET", "POST"],
+  },
+});
 
 cloudinary.config({
   cloud_name: process.env.CLOUD_NAME,
@@ -20,37 +30,48 @@ cloudinary.config({
   api_secret: process.env.CLOUD_API_SECRET,
 });
 
-app.use(
-  fileupload({
-    useTempFiles: true,
-  })
-);
-
+// Middleware setup
+app.use(fileupload({ useTempFiles: true }));
 app.use(express.json());
 app.use(cors());
 app.use(errorHandler);
 
+// Basic route
 app.get("/", (req, res) => {
   res.send("WELCOME TO FOOD NINJA");
 });
 
-// This is the user section
+// Routers
 app.use("/api/v1/food-ninja/auth", AuthRouter);
+app.use("/api/v1/food-ninja/delivery", DeliveryRouter);
+app.use("/api/v1/food-ninja/admin", AdminRouter);
+app.use("/api/v1/food-ninja/food", FoodRouter(io)); // Pass io to FoodRouter
 
-// This is the delivery section
-app.use("/api/v1/food-ninja/auth", DeliveryRouter);
+// Handle Socket.IO connections
+io.on("connection", (socket) => {
+  console.log("A user connected:", socket.id);
 
-// This is the admin section
-app.use("/api/v1/food-ninja/auth", AdminRouter);
+  // Example: Listen for events
+  socket.on("sendMessage", (message) => {
+    console.log("Message received:", message);
+    io.emit("receiveMessage", message);
+  });
 
+  // Handle disconnections
+  socket.on("disconnect", () => {
+    console.log("A user disconnected:", socket.id);
+  });
+});
+
+// Start server
 const server = async () => {
   try {
     await mongoose.connect(process.env.MONGO, {
       dbName: "food-ninja",
     });
 
-    app.listen(PORT, () => {
-      console.log(`Running on PORT ${PORT}`);
+    httpServer.listen(PORT, () => {
+      console.log(`Server running on PORT ${PORT}`);
     });
   } catch (error) {
     console.error("Failed to start the server:", error);
