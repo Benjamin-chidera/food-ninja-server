@@ -47,6 +47,10 @@ app.use("/api/v1/food-ninja/delivery", DeliveryRouter);
 app.use("/api/v1/food-ninja/admin", AdminRouter);
 app.use("/api/v1/food-ninja/food", FoodRouter(io)); // Pass io to FoodRouter
 
+app.use("*", (res) => {
+  res.status(404).json({ message: "Not found" });
+});
+
 // Handle Socket.IO connections
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);

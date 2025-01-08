@@ -22,6 +22,10 @@ const foodSchema = new Schema(
       type: String,
       required: true,
     },
+    restaurant: {
+      type: String,
+      required: true,
+    },
     tags: {
       type: [String],
       required: true,
