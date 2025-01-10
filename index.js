@@ -41,7 +41,7 @@ app.get("/", (req, res) => {
   res.send("WELCOME TO FOOD NINJA");
 });
 
-// Routers
+// Routers 
 app.use("/api/v1/food-ninja/auth", AuthRouter);
 app.use("/api/v1/food-ninja/delivery", DeliveryRouter);
 app.use("/api/v1/food-ninja/admin", AdminRouter);

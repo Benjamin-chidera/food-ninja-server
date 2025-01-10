@@ -82,3 +82,83 @@ export const getFoodById = expressAsyncHandler(async (req, res) => {
   }
   res.status(200).json({ success: true, food });
 });
+
+export const updateFood = expressAsyncHandler(async (req, res) => {
+  const { foodId } = req.params;
+
+  const { name, price, category, description, tags, isAvailable, restaurant } =
+    req.body;
+
+  const existingFood = await Food.findById(foodId);
+
+  if (!existingFood) {
+    return res.status(400).json({ message: "Food ID not found" });
+  }
+
+  const foodDetails = {};
+
+  if (name) {
+    foodDetails.name = name;
+  }
+  if (price) {
+    foodDetails.price = price;
+  }
+
+  if (category) {
+    foodDetails.category = category;
+  }
+
+  if (description) {
+    foodDetails.description = description;
+  }
+
+  if (tags) {
+    foodDetails.tags = tags.split(",");
+  }
+
+  if (isAvailable) {
+    foodDetails.isAvailable = isAvailable;
+  }
+
+  if (restaurant) {
+    foodDetails.restaurant = restaurant;
+  }
+
+  if (req.files && req.files.image) {
+    const foodImages = req.files.image.tempFilePath;
+
+    try {
+      // check and delete the old image if it exists
+      if (existingFood.image) {
+        const publicId = existingFood.image.split("/").pop().split(".")[0];
+        await cloudinary.uploader.destroy(`food-ninja/${publicId}`);
+      }
+
+      const foodImg = await cloudinary.uploader.upload(foodImages, {
+        folder: "food-ninja",
+        use_filename: true,
+        resource_type: "auto",
+      });
+
+      foodDetails.image = foodImg.secure_url;
+
+      // Delete the temporary file after successful upload
+      fs.unlinkSync(foodImages);
+
+      // Save the updated food details
+
+      const updatedFood = await Food.findByIdAndUpdate(foodId, foodDetails, {
+        new: true,
+        runValidators: true,
+      });
+
+      res.status(200).json({
+        success: true,
+        food: updatedFood,
+        message: "Food updated successfully",
+      });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+});

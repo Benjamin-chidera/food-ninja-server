@@ -3,6 +3,7 @@ import {
   createFood,
   getAllFood,
   getFoodById,
+  updateFood,
 } from "../../controller/admin/foodController.js";
 
 export const FoodRouter = (io) => {
@@ -12,6 +13,7 @@ export const FoodRouter = (io) => {
   router.post("/create", createFood(io));
   router.get("/all-food", getAllFood);
   router.get("/food/:id", getFoodById);
+  router.patch("/food/:id", updateFood);
 
   return router;
 };
