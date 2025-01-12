@@ -7,7 +7,7 @@ import {
   requestNewOTP,
   resetPassword,
   verifyOTP,
-} from "../controller/adminController.js";
+} from "../../controller/admin/adminController.js";
 
 
 const router = Router();

@@ -43,6 +43,13 @@ const authSchema = new Schema(
       default: "Customer",
     },
 
+    favorites: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Food",
+      },
+    ],
+
     otpExpiration: { type: Date },
   },
   {

@@ -83,74 +83,81 @@ export const getFoodById = expressAsyncHandler(async (req, res) => {
   res.status(200).json({ success: true, food });
 });
 
-export const updateFood = expressAsyncHandler(async (req, res) => {
-  const { foodId } = req.params;
+export const updateFood = (io) =>
+  expressAsyncHandler(async (req, res) => {
+    const { foodId } = req.params;
 
-  const { name, price, category, description, tags, isAvailable, restaurant } =
-    req.body;
+    const {
+      name,
+      price,
+      category,
+      description,
+      tags,
+      isAvailable,
+      restaurant,
+    } = req.body;
 
-  const existingFood = await Food.findById(foodId);
+    // Check if the food item exists
+    const existingFood = await Food.findById(foodId);
 
-  if (!existingFood) {
-    return res.status(400).json({ message: "Food ID not found" });
-  }
+    if (!existingFood) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Food ID not found" });
+    }
 
-  const foodDetails = {};
+    const foodDetails = {};
 
-  if (name) {
-    foodDetails.name = name;
-  }
-  if (price) {
-    foodDetails.price = price;
-  }
+    // Update fields selectively
+    if (name) foodDetails.name = name;
+    if (price) foodDetails.price = price;
+    if (category) foodDetails.category = category;
+    if (description) foodDetails.description = description;
+    if (tags) foodDetails.tags = tags ? tags.split(",") : existingFood.tags;
+    if (typeof isAvailable !== "undefined")
+      foodDetails.isAvailable = isAvailable;
+    if (restaurant) foodDetails.restaurant = restaurant;
 
-  if (category) {
-    foodDetails.category = category;
-  }
+    // Handle image upload if provided
+    if (req.files && req.files.image) {
+      const foodImages = req.files.image.tempFilePath;
 
-  if (description) {
-    foodDetails.description = description;
-  }
+      try {
+        // Delete old image from Cloudinary
+        if (existingFood.image) {
+          const publicId = existingFood.image.split("/").pop().split(".")[0];
+          await cloudinary.uploader.destroy(`food-ninja/${publicId}`);
+        }
 
-  if (tags) {
-    foodDetails.tags = tags.split(",");
-  }
+        // Upload new image
+        const foodImg = await cloudinary.uploader.upload(foodImages, {
+          folder: "food-ninja",
+          use_filename: true,
+          resource_type: "auto",
+        });
 
-  if (isAvailable) {
-    foodDetails.isAvailable = isAvailable;
-  }
+        foodDetails.image = foodImg.secure_url;
 
-  if (restaurant) {
-    foodDetails.restaurant = restaurant;
-  }
-
-  if (req.files && req.files.image) {
-    const foodImages = req.files.image.tempFilePath;
+        // Delete temporary file
+        fs.unlinkSync(foodImages);
+      } catch (error) {
+        return res
+          .status(500)
+          .json({
+            success: false,
+            message: `Image upload failed: ${error.message}`,
+          });
+      }
+    }
 
     try {
-      // check and delete the old image if it exists
-      if (existingFood.image) {
-        const publicId = existingFood.image.split("/").pop().split(".")[0];
-        await cloudinary.uploader.destroy(`food-ninja/${publicId}`);
-      }
-
-      const foodImg = await cloudinary.uploader.upload(foodImages, {
-        folder: "food-ninja",
-        use_filename: true,
-        resource_type: "auto",
-      });
-
-      foodDetails.image = foodImg.secure_url;
-
-      // Delete the temporary file after successful upload
-      fs.unlinkSync(foodImages);
-
-      // Save the updated food details
-
+      // Update the food item in the database
       const updatedFood = await Food.findByIdAndUpdate(foodId, foodDetails, {
         new: true,
         runValidators: true,
       });
+
+      io.emit("newFoodCreated", updatedFood);
 
       res.status(200).json({
         success: true,
@@ -158,7 +165,8 @@ export const updateFood = expressAsyncHandler(async (req, res) => {
         message: "Food updated successfully",
       });
     } catch (error) {
-      res.status(500).json({ success: false, message: error.message });
+      res
+        .status(500)
+        .json({ success: false, message: `Update failed: ${error.message}` });
     }
-  }
-});
+  });

@@ -1,12 +1,12 @@
-import { Auth } from "../models/auth.js";
+import { Auth } from "../../models/user/auth.js";
 import bcryptjs from "bcryptjs";
 import jwt from "jsonwebtoken";
 import expressAsyncHandler from "express-async-handler";
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
-import { generateOTP } from "../libs/otp-generator.js";
-import { sendOtp } from "../utils/sendOtp.js";
-import sendEmail from "../utils/sendEmail.js";
+import { generateOTP } from "../../libs/otp-generator.js";
+import { sendOtp } from "../../utils/sendOtp.js";
+import sendEmail from "../../utils/sendEmail.js";
 
 // sign up
 export const signUp = expressAsyncHandler(async (req, res) => {
@@ -151,7 +151,8 @@ export const signIn = expressAsyncHandler(async (req, res) => {
 // update user details
 export const userBio = expressAsyncHandler(async (req, res) => {
   const { userId } = req.params;
-  const { firstName, lastName, phoneNumber, location, email, password } = req.body;
+  const { firstName, lastName, phoneNumber, location, email, password } =
+    req.body;
 
   const existingUser = await Auth.findById(userId);
   if (!existingUser) {
@@ -172,7 +173,7 @@ export const userBio = expressAsyncHandler(async (req, res) => {
     try {
       // Delete the existing photo from Cloudinary if it exists
       if (existingUser.photo) {
-        const publicId = existingUser.photo.split('/').pop().split('.')[0]; // Extract public ID from the URL
+        const publicId = existingUser.photo.split("/").pop().split(".")[0]; // Extract public ID from the URL
         await cloudinary.uploader.destroy(`food-ninja/${publicId}`);
       }
 
@@ -218,7 +219,6 @@ export const userBio = expressAsyncHandler(async (req, res) => {
     res.status(500).json({ message: "Failed to update user details" });
   }
 });
-
 
 export const getUser = expressAsyncHandler(async (req, res) => {
   const { userId } = req.params;
@@ -383,7 +383,7 @@ export const deleteUserAccount = expressAsyncHandler(async (req, res) => {
 
     // Delete the existing photo from Cloudinary if it exists
     if (User.photo) {
-      const publicId = User.photo.split('/').pop().split('.')[0]; // Extract public ID from the URL
+      const publicId = User.photo.split("/").pop().split(".")[0]; // Extract public ID from the URL
       await cloudinary.uploader.destroy(`food-ninja/${publicId}`);
     }
 

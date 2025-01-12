@@ -13,7 +13,7 @@ export const FoodRouter = (io) => {
   router.post("/create", createFood(io));
   router.get("/all-food", getAllFood);
   router.get("/food/:id", getFoodById);
-  router.patch("/food/:id", updateFood);
+  router.patch("/food/:foodId", updateFood(io));
 
   return router;
 };

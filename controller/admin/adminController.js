@@ -3,9 +3,9 @@ import jwt from "jsonwebtoken";
 import expressAsyncHandler from "express-async-handler";
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
-import { generateOTP } from "../libs/otp-generator.js";
-import { sendOtp } from "../utils/sendOtp.js";
-import { Admin } from "../models/admin.js";
+import { generateOTP } from "../../libs/otp-generator.js";
+import { sendOtp } from "../../utils/sendOtp.js";
+import { Admin } from "../../models/admin/admin.js";
 
 // sign up
 export const adminSignUp = expressAsyncHandler(async (req, res) => {

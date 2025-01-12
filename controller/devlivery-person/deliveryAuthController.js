@@ -1,12 +1,12 @@
-import { Delivery } from "../models/delivery.js";
+import { Delivery } from "../../models/devlivery-person/delivery.js";
 import expressAsyncHandler from "express-async-handler";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
-import { generateOTP } from "../libs/otp-generator.js";
-import { sendOtp } from "../utils/sendOtp.js";
-import sendEmail from "../utils/sendEmail.js";
+import { generateOTP } from "../../libs/otp-generator.js";
+import { sendOtp } from "../../utils/sendOtp.js";
+import sendEmail from "../../utils/sendEmail.js";
 
 export const registerDelivery = expressAsyncHandler(async (req, res) => {
   // Register a new delivery account

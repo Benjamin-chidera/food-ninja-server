@@ -8,8 +8,8 @@ import {
   forgottenPassword,
   resetPassword,
   getUser,
-  deleteUserAccount
-} from "../controller/authController.js";
+  deleteUserAccount,
+} from "../../controller/user/authController.js";
 
 const router = Router();
 
@@ -29,7 +29,7 @@ router.post("/forgot-password", forgottenPassword);
 
 router.patch("/reset-password/:userId", resetPassword);
 
-router.delete("/user/:userId", deleteUserAccount)
+router.delete("/user/:userId", deleteUserAccount);
 
 // export default router
 
