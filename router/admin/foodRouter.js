@@ -4,6 +4,7 @@ import {
   getAllFood,
   getFoodById,
   updateFood,
+  deleteFood
 } from "../../controller/admin/foodController.js";
 
 export const FoodRouter = (io) => {
@@ -13,7 +14,8 @@ export const FoodRouter = (io) => {
   router.post("/create", createFood(io));
   router.get("/all-food", getAllFood);
   router.get("/food/:id", getFoodById);
-  router.patch("/food/:foodId", updateFood(io));
+  router.patch("/food/:foodId", updateFood);
+  router.delete("/food/:foodId", deleteFood);
 
   return router;
 };

@@ -83,90 +83,108 @@ export const getFoodById = expressAsyncHandler(async (req, res) => {
   res.status(200).json({ success: true, food });
 });
 
-export const updateFood = (io) =>
-  expressAsyncHandler(async (req, res) => {
-    const { foodId } = req.params;
+export const updateFood = expressAsyncHandler(async (req, res) => {
+  const { foodId } = req.params;
 
-    const {
-      name,
-      price,
-      category,
-      description,
-      tags,
-      isAvailable,
-      restaurant,
-    } = req.body;
+  const { name, price, category, description, tags, isAvailable, restaurant } =
+    req.body;
 
-    // Check if the food item exists
-    const existingFood = await Food.findById(foodId);
+  // Check if the food item exists
+  const existingFood = await Food.findById(foodId);
 
-    if (!existingFood) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Food ID not found" });
-    }
+  if (!existingFood) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Food ID not found" });
+  }
 
-    const foodDetails = {};
+  const foodDetails = {};
 
-    // Update fields selectively
-    if (name) foodDetails.name = name;
-    if (price) foodDetails.price = price;
-    if (category) foodDetails.category = category;
-    if (description) foodDetails.description = description;
-    if (tags) foodDetails.tags = tags ? tags.split(",") : existingFood.tags;
-    if (typeof isAvailable !== "undefined")
-      foodDetails.isAvailable = isAvailable;
-    if (restaurant) foodDetails.restaurant = restaurant;
+  // Update fields selectively
+  if (name) foodDetails.name = name;
+  if (price) foodDetails.price = price;
+  if (category) foodDetails.category = category;
+  if (description) foodDetails.description = description;
+  if (tags) foodDetails.tags = tags ? tags.split(",") : existingFood.tags;
+  if (typeof isAvailable !== "undefined") foodDetails.isAvailable = isAvailable;
+  if (restaurant) foodDetails.restaurant = restaurant;
 
-    // Handle image upload if provided
-    if (req.files && req.files.image) {
-      const foodImages = req.files.image.tempFilePath;
-
-      try {
-        // Delete old image from Cloudinary
-        if (existingFood.image) {
-          const publicId = existingFood.image.split("/").pop().split(".")[0];
-          await cloudinary.uploader.destroy(`food-ninja/${publicId}`);
-        }
-
-        // Upload new image
-        const foodImg = await cloudinary.uploader.upload(foodImages, {
-          folder: "food-ninja",
-          use_filename: true,
-          resource_type: "auto",
-        });
-
-        foodDetails.image = foodImg.secure_url;
-
-        // Delete temporary file
-        fs.unlinkSync(foodImages);
-      } catch (error) {
-        return res
-          .status(500)
-          .json({
-            success: false,
-            message: `Image upload failed: ${error.message}`,
-          });
-      }
-    }
+  // Handle image upload if provided
+  if (req.files && req.files.image) {
+    const foodImages = req.files.image.tempFilePath;
 
     try {
-      // Update the food item in the database
-      const updatedFood = await Food.findByIdAndUpdate(foodId, foodDetails, {
-        new: true,
-        runValidators: true,
+      // Delete old image from Cloudinary
+      if (existingFood.image) {
+        const publicId = existingFood.image.split("/").pop().split(".")[0];
+        await cloudinary.uploader.destroy(`food-ninja/${publicId}`);
+      }
+
+      // Upload new image
+      const foodImg = await cloudinary.uploader.upload(foodImages, {
+        folder: "food-ninja",
+        use_filename: true,
+        resource_type: "auto",
       });
 
-      io.emit("newFoodCreated", updatedFood);
+      foodDetails.image = foodImg.secure_url;
 
-      res.status(200).json({
-        success: true,
-        food: updatedFood,
-        message: "Food updated successfully",
-      });
+      // Delete temporary file
+      fs.unlinkSync(foodImages);
     } catch (error) {
-      res
-        .status(500)
-        .json({ success: false, message: `Update failed: ${error.message}` });
+      return res.status(500).json({
+        success: false,
+        message: `Image upload failed: ${error.message}`,
+      });
     }
-  });
+  }
+
+  try {
+    // Update the food item in the database
+    const updatedFood = await Food.findByIdAndUpdate(foodId, foodDetails, {
+      new: true,
+      runValidators: true,
+    });
+
+    // io.emit("newFoodCreated", updatedFood);
+
+    res.status(200).json({
+      success: true,
+      food: updatedFood,
+      message: "Food updated successfully",
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ success: false, message: `Update failed: ${error.message}` });
+  }
+});
+
+export const deleteFood = async (req, res) => {
+  const { foodId } = req.params;
+
+  try {
+    const food = await Food.findByIdAndDelete(foodId);
+
+    if (!food) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Food not found" });
+    }
+
+    if (food.image) {
+      const publicId = food.image.split("/").pop().split(".")[0];
+      await cloudinary.uploader.destroy(`food-ninja/${publicId}`);
+    }
+
+    res
+      .status(200)
+      .json({ success: true, message: "Food deleted successfully" });
+
+    // Delete image from Cloudinary
+  } catch (error) {
+    res
+      .status(500)
+      .json({ success: false, message: `Delete failed: ${error}` });
+  }
+};

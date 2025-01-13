@@ -44,7 +44,7 @@ export const addFavorite = async (req, res) => {
 };
 
 export const getAllFavorite = async (req, res) => {
-  const { userId } = req.body;
+  const { userId } = req.params;
 
   const checkUserId = await Auth.findById(userId);
 
@@ -108,7 +108,7 @@ export const removeFavorite = async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({
-      message: "Something went wrong",
+      message: error,
     });
   }
 };
