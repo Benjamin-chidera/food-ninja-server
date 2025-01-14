@@ -10,6 +10,8 @@ import { DeliveryRouter } from "./router/devlivery-person/deliveryRouter.js";
 import { AdminRouter } from "./router/admin/adminRouter.js";
 import { FoodRouter } from "./router/admin/foodRouter.js";
 import { FavoriteRouter } from "./router/user/favoriteRoute.js";
+import { CartRouter } from "./router/user/cartRouter.js";
+
 
 import { createServer } from "http";
 import { Server } from "socket.io";
@@ -49,6 +51,7 @@ app.use("/api/v1/food-ninja/delivery", DeliveryRouter);
 app.use("/api/v1/food-ninja/admin", AdminRouter);
 app.use("/api/v1/food-ninja/food", FoodRouter(io)); // Pass io to FoodRouter
 app.use("/api/v1/food-ninja/food", FavoriteRouter);
+app.use("/api/v1/food-ninja/cart", CartRouter);
 
 app.use("*", (req, res) => {
   res.status(404).json({ message: "Not found" });
