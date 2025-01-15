@@ -5,6 +5,7 @@ const router = Router();
 
 router.post("/add-to-cart", addToCart);
 router.post("/remove-from-cart", removeFromCart);
-router.get("/get-cart", getCart);
+router.get("/get-cart/:userId", getCart);
 
 export const CartRouter = router;
+   
