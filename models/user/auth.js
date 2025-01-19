@@ -50,6 +50,13 @@ const authSchema = new Schema(
       },
     ],
 
+    cart: [
+      {
+        foodId: { type: mongoose.Schema.Types.ObjectId, ref: "Food" },
+        quantity: { type: Number, default: 1 },
+      },
+    ],
+
     otpExpiration: { type: Date },
   },
   {

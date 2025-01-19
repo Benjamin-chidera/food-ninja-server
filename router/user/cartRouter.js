@@ -8,4 +8,3 @@ router.post("/remove-from-cart", removeFromCart);
 router.get("/get-cart/:userId", getCart);
 
 export const CartRouter = router;
-   

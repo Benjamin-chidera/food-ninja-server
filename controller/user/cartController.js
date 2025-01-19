@@ -1,47 +1,39 @@
 import { Food } from "../../models/admin/food.js";
-import { Cart } from "../../models/user/cart.js";
+import { Auth } from "../../models/user/auth.js";
 
 export const addToCart = async (req, res) => {
   try {
     const { userId, foodId, quantity } = req.body;
 
-    if (!userId || !foodId || !quantity || quantity < 1) {
-      return res.status(400).json({ message: "Invalid input" });
-    }
-
     const food = await Food.findById(foodId);
+    const user = await Auth.findById(userId);
 
-    if (!food) {
-      return res.status(404).json({ message: "Food not found" });
+    if (!food || !user) {
+      return res.status(404).json({ message: "Food or User not found" });
     }
 
-    //   check if food is already in the cart
-
-    let cart = await Cart.findOne({ user: userId });
-
-    if (!cart) {
-      // create new cart if it doesn't exist
-      cart = new Cart({ user: userId, items: [] });
-    }
-
-    //   check if food is already in the cart
-
-    const existingItem = cart.items.find(
-      (item) => item.food.toString() === foodId
+    // Check if the food is already in the cart
+    const existingItem = user.cart.find(
+      (item) => item.foodId.toString() === foodId
     );
 
     if (existingItem) {
-      // if food is already in the cart, update the quantity
-      existingItem.quantity += quantity;
+      // If food is already in the cart, update the quantity
+      existingItem.quantity += quantity || 1;
     } else {
-      // if food is not in the cart, add it
-      cart.items.push({ food: foodId, quantity });
+      // If food is not in the cart, add it with the given or default quantity
+      user.cart.push({ foodId, quantity: quantity || 1 });
     }
 
-    await cart.save();
-    res.json({ success: true, message: "Food added to cart", cart });
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Food item added to cart successfully",
+      cart: user.cart,
+    });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -49,7 +41,17 @@ export const addToCart = async (req, res) => {
 export const getCart = async (req, res) => {
   const { userId } = req.params;
   try {
-    const cart = await Cart.findOne({ user: userId }).populate("items.food");
+    const checkUserId = await Auth.findById(userId);
+
+    if (!checkUserId) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    const cart = await Food.find({
+      _id: { $in: checkUserId.cart.map((item) => item.foodId) },
+    });
 
     res.json({ success: true, cart });
   } catch (error) {
@@ -59,36 +61,77 @@ export const getCart = async (req, res) => {
 };
 
 export const removeFromCart = async (req, res) => {
-    try {
-      const { userId, foodId } = req.body; // Get userId and foodId from the request body
-  
-      // Validate input
-      if (!userId || !foodId) {
-        return res.status(400).json({ message: 'User ID and Food ID are required' });
-      }
-  
-      // Find the user's cart
-      const cart = await Cart.findOne({ user: userId });
-  
-      if (!cart) {
-        return res.status(404).json({ message: 'Cart not found' });
-      }
-  
-      // Find the index of the item to remove
-      const itemIndex = cart.items.findIndex(item => item.food.toString() === foodId);
-  
-      if (itemIndex === -1) {
-        return res.status(404).json({ message: 'Item not found in cart' });
-      }
-  
-      // Remove the item from the cart
-      cart.items.splice(itemIndex, 1);
-  
-      // Save the updated cart
-      await cart.save();
-  
-      res.status(200).json({ message: 'Item removed from cart', cart });
-    } catch (error) {
-      res.status(500).json({ message: 'Something went wrong', error: error.message });
+  try {
+    const { userId, foodId } = req.body;
+
+    const checkUserId = await Auth.findById(userId);
+
+    if (!checkUserId) {
+      return res.status(404).json({
+        message: "User not found",
+      });
     }
-  };
+
+    // Check if food exists in the user's cart before removing
+    if (!checkUserId.cart.includes(foodId)) {
+      return res.status(404).json({
+        message: "Food not found in cart",
+      });
+    }
+
+    // Remove the food from the cart array
+    checkUserId.cart = checkUserId.cart.filter(
+      (cart) => cart.toString() !== foodId
+    );
+
+    // Save the updated user document
+    await checkUserId.save();
+
+    // Fetch the updated list of cart to ensure it's updated
+    const updatedUser = await Auth.findById(userId);
+
+    // Fetch the updated list of favorite foods
+    const cart = await Food.find({
+      _id: { $in: updatedUser.cart },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Food removed from cart",
+      cart,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: error,
+    });
+  }
+};
+
+// stripe listen --forward-to localhost:3000/webhook
+
+export const clearCart = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await Auth.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    user.cart = [];
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Cart cleared",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
