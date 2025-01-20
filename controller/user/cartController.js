@@ -64,49 +64,52 @@ export const removeFromCart = async (req, res) => {
   try {
     const { userId, foodId } = req.body;
 
-    const checkUserId = await Auth.findById(userId);
+    // Find the user by ID
+    const user = await Auth.findById(userId);
 
-    if (!checkUserId) {
+    if (!user) {
       return res.status(404).json({
         message: "User not found",
       });
     }
 
-    // Check if food exists in the user's cart before removing
-    if (!checkUserId.cart.includes(foodId)) {
+    // Check if the food exists in the user's cart
+    const existingItem = user.cart.find(
+      (item) => item.foodId.toString() === foodId
+    );
+
+    if (!existingItem) {
       return res.status(404).json({
         message: "Food not found in cart",
       });
     }
 
-    // Remove the food from the cart array
-    checkUserId.cart = checkUserId.cart.filter(
-      (cart) => cart.toString() !== foodId
+    // Remove the food item from the cart
+    user.cart = user.cart.filter(
+      (item) => item.foodId.toString() !== foodId
     );
 
     // Save the updated user document
-    await checkUserId.save();
+    await user.save();
 
-    // Fetch the updated list of cart to ensure it's updated
-    const updatedUser = await Auth.findById(userId);
-
-    // Fetch the updated list of favorite foods
-    const cart = await Food.find({
-      _id: { $in: updatedUser.cart },
+    // Fetch the updated cart items from the Food collection
+    const updatedCart = await Food.find({
+      _id: { $in: user.cart.map((item) => item.foodId) },
     });
 
     return res.status(200).json({
       success: true,
       message: "Food removed from cart",
-      cart,
+      cart: updatedCart,
     });
   } catch (error) {
     console.error(error);
     return res.status(500).json({
-      message: error,
+      message: "Server error",
     });
   }
 };
+
 
 // stripe listen --forward-to localhost:3000/webhook
 
