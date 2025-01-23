@@ -53,7 +53,18 @@ export const getCart = async (req, res) => {
       _id: { $in: checkUserId.cart.map((item) => item.foodId) },
     });
 
-    res.json({ success: true, cart });
+    // get the quantity of each food item in the cart
+    const cartItems = cart.map((food) => {
+      const cartItem = checkUserId.cart.find(
+        (item) => item.foodId.toString() === food._id.toString()
+      );
+      return {
+        ...food._doc,
+        quantity: cartItem.quantity,
+      };
+    });
+
+    res.json({ success: true, cart: cartItems });
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Server error" });
@@ -85,9 +96,7 @@ export const removeFromCart = async (req, res) => {
     }
 
     // Remove the food item from the cart
-    user.cart = user.cart.filter(
-      (item) => item.foodId.toString() !== foodId
-    );
+    user.cart = user.cart.filter((item) => item.foodId.toString() !== foodId);
 
     // Save the updated user document
     await user.save();
@@ -110,7 +119,6 @@ export const removeFromCart = async (req, res) => {
   }
 };
 
-
 // stripe listen --forward-to localhost:3000/webhook
 
 export const clearCart = async (req, res) => {
@@ -132,6 +140,97 @@ export const clearCart = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Cart cleared",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const incrementQuantity = async (req, res) => {
+  try {
+    const { userId, foodId } = req.params;
+
+    const user = await Auth.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    const food = await Food.findById(foodId);
+
+    if (!food) {
+      return res.status(404).json({
+        message: "Food not found",
+      });
+    }
+
+    const cartItem = user.cart.find(
+      (item) => item.foodId.toString() === foodId
+    );
+
+    if (!cartItem) {
+      return res.status(404).json({
+        message: "Food not found in cart",
+      });
+    }
+
+    cartItem.quantity += 1;
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Quantity incremented",
+      quantity: cartItem.quantity,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+export const decreaseQuantity = async (req, res) => {
+  try {
+    const { userId, foodId } = req.params;
+
+    const user = await Auth.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    const food = await Food.findById(foodId);
+
+    if (!food) {
+      return res.status(404).json({
+        message: "Food not found",
+      });
+    }
+
+    const cartItem = user.cart.find(
+      (item) => item.foodId.toString() === foodId
+    );
+
+    if (!cartItem) {
+      return res.status(404).json({
+        message: "Food not found in cart",
+      });
+    }
+
+    cartItem.quantity -= 1;
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Quantity reduced",
+      quantity: cartItem.quantity,
     });
   } catch (error) {
     console.error(error);
