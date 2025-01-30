@@ -58,6 +58,7 @@ const authSchema = new Schema(
     ],
 
     otpExpiration: { type: Date },
+    dateJoined: { type: Date, default: new Date() },
   },
   {
     timestamps: true,

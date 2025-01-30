@@ -6,6 +6,7 @@ import fs from "fs";
 import { generateOTP } from "../../libs/otp-generator.js";
 import { sendOtp } from "../../utils/sendOtp.js";
 import { Admin } from "../../models/admin/admin.js";
+import { Auth } from "../../models/user/auth.js";
 
 // sign up
 export const adminSignUp = expressAsyncHandler(async (req, res) => {
@@ -251,4 +252,17 @@ export const resetPassword = expressAsyncHandler(async (req, res) => {
   });
 
   res.status(200).json({ msg: "Password successfully changed", success: true });
+});
+
+// get all registered users
+
+export const getAllUsers = expressAsyncHandler(async (req, res) => {
+  try {
+    const users = await Auth.find();
+
+    res.status(200).json(users);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
 });

@@ -13,7 +13,7 @@ import { FavoriteRouter } from "./router/user/favoriteRoute.js";
 import { CartRouter } from "./router/user/cartRouter.js";
 import { PaymentRouter } from "./router/user/paymentRouter.js";
 import { OrderRouter } from "./router/user/orderRouter.js";
-
+import { AdminOrderRouter } from "./router/admin/adminOrderRouter.js";
 
 import { createServer } from "http";
 import { Server } from "socket.io";
@@ -59,6 +59,7 @@ app.use("/api/v1/food-ninja/food", FavoriteRouter);
 app.use("/api/v1/food-ninja/cart", CartRouter);
 app.use("/api/v1/food-ninja/payment", PaymentRouter);
 app.use("/api/v1/food-ninja/order", OrderRouter);
+app.use("/api/v1/food-ninja/customer", AdminOrderRouter);
 
 // strip webhook
 
@@ -90,7 +91,9 @@ app.post(
               _id: { $in: user.cart.map((item) => item.foodId) },
             });
 
-            console.log(getOrder);
+            // console.log(getOrder);
+
+            const orderId = Math.random() * 10000;
 
             // creating the order
             const order = new Order({
@@ -98,6 +101,7 @@ app.post(
               totalAmount: paymentIntent.amount / 100,
               paymentStatus: paymentIntent.status,
               user: userId,
+              orderId: Math.floor(orderId),
             });
 
             await order.save();
@@ -105,8 +109,6 @@ app.post(
             // clearing the cart
             user.cart = [];
             await user.save();
-
-            
           }
         } catch (error) {
           console.log(error);

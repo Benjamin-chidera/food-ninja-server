@@ -10,8 +10,15 @@ import sendEmail from "../../utils/sendEmail.js";
 
 // sign up
 export const signUp = expressAsyncHandler(async (req, res) => {
-  const { email, password, firstName, lastName, phoneNumber, location } =
-    req.body;
+  const {
+    email,
+    password,
+    firstName,
+    lastName,
+    phoneNumber,
+    location,
+    dateJoined,
+  } = req.body;
 
   // Check if the required fields are provided
   if (
@@ -84,6 +91,7 @@ export const signUp = expressAsyncHandler(async (req, res) => {
     phoneNumber,
     location,
     photo: photoImgUrl,
+    dateJoined, // Set the current date as the date joined
   });
 
   try {

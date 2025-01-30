@@ -5,11 +5,17 @@ const orderSchema = new Schema(
     item: Array,
     totalAmount: Number,
     paymentStatus: String,
+    orderId: Number,
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Auth",
     },
-    // createdAt: { type: Date, default: Date.now },
+
+    status: {
+      type: String,
+      enum: ["Placed", "Preparing", "Transit", "Delivered"],
+      default: "Placed",
+    },
   },
   {
     timestamps: true,
