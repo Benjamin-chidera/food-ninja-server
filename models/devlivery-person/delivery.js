@@ -56,6 +56,17 @@ const DeliverySchema = new Schema(
       type: String,
       default: "Delivery Person",
     },
+
+    status: {
+      type: String,
+      enum: ["Active", "Inactive"],
+      default: "Inactive",
+    },
+
+    rating: {
+      type: Number,
+      default: 0,
+    },
   },
 
   {

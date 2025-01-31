@@ -7,6 +7,7 @@ import { generateOTP } from "../../libs/otp-generator.js";
 import { sendOtp } from "../../utils/sendOtp.js";
 import { Admin } from "../../models/admin/admin.js";
 import { Auth } from "../../models/user/auth.js";
+import { Delivery } from "../../models/devlivery-person/delivery.js";
 
 // sign up
 export const adminSignUp = expressAsyncHandler(async (req, res) => {
@@ -266,3 +267,87 @@ export const getAllUsers = expressAsyncHandler(async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
+
+// this is for the delivery person
+export const getAllDeliveryPerson = async (req, res) => {
+  try {
+    const deliveryPerson = await Delivery.find();
+    res.status(200).json(deliveryPerson);
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+export const getDeliveryPersonDataById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deliveryPerson = await Delivery.findById(id);
+    res.status(200).json(deliveryPerson);
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+export const editDeliveryPersonData = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      firstName,
+      lastName,
+      email,
+      phoneNumber,
+      address,
+      vehicleType,
+      vehicleNumber,
+      city,
+      state,
+      country,
+      status,
+      rating,
+    } = req.body;
+
+    const deliveryPerson = await Delivery.findByIdAndUpdate(
+      id,
+      {
+        firstName,
+        lastName,
+        email,
+        phoneNumber,
+        address,
+        vehicleType,
+        vehicleNumber,
+        city,
+        state,
+        country,
+        status,
+        rating,
+      },
+      { new: true, runValidators: true }
+    );
+
+    res.status(200).json({ success: true, deliveryPerson });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// this is to add new delivery person
+export const addNewDeliveryPerson = async (req, res) => {
+  try {
+    const { firstName, lastName, email, phoneNumber, status } = req.body;
+
+    const deliveryPerson = await Delivery.create({
+      firstName,
+      lastName,
+      email,
+      phoneNumber,
+      status,
+    });
+
+    res.status(200).json({ success: true, deliveryPerson });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
