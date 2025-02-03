@@ -10,57 +10,62 @@ import sendEmail from "../../utils/sendEmail.js";
 
 export const registerDelivery = expressAsyncHandler(async (req, res) => {
   // Register a new delivery account
-  const { firstName, lastName, email, password } = req.body;
+  try {
+    const { firstName, lastName, email, password } = req.body;
 
-  if (!firstName || !lastName || !email || !password) {
-    res.status(400).json({ message: "Please provide all required fields" });
+    if (!firstName || !lastName || !email || !password) {
+      res.status(400).json({ message: "Please provide all required fields" });
+    }
+
+    const existingEmail = await Delivery.findOne({ email });
+
+    if (existingEmail) {
+      return res.status(400).json({ message: "Email already exists" });
+    }
+
+    if (password.length < 7) {
+      return res
+        .status(400)
+        .json({ message: "Password must be at least 7 characters long" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const delivery = new Delivery({
+      firstName,
+      lastName,
+      email,
+      password: hashedPassword,
+    });
+
+    // Generate OTP and set expiration time (5 minutes)
+    const otp = generateOTP();
+    const otpExpiration = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiration
+
+    // Save OTP and expiration time temporarily in the database
+    delivery.otp = otp;
+    delivery.otpExpiration = otpExpiration;
+
+    //   Save delivery account to the database
+    await delivery.save();
+
+    // Send OTP email to the user
+    const emailHtml = `<p>Your OTP code is <strong>${otp}</strong>. It will expire in 5 minutes.</p>`;
+    await sendOtp({
+      to: delivery.email,
+      subject: "Your OTP Code",
+      html: emailHtml,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Please check your email for the OTP code",
+      deliveryId: delivery._id,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal server error" });
   }
-
-  const existingEmail = await Delivery.findOne({ email });
-
-  if (existingEmail) {
-    return res.status(400).json({ message: "Email already exists" });
-  }
-
-  if (password.length < 7) {
-    return res
-      .status(400)
-      .json({ message: "Password must be at least 7 characters long" });
-  }
-
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  const delivery = new Delivery({
-    firstName,
-    lastName,
-    email,
-    password: hashedPassword,
-  });
-
-  // Generate OTP and set expiration time (5 minutes)
-  const otp = generateOTP();
-  const otpExpiration = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiration
-
-  // Save OTP and expiration time temporarily in the database
-  delivery.otp = otp;
-  delivery.otpExpiration = otpExpiration;
-
-  //   Save delivery account to the database
-  await delivery.save();
-
-  // Send OTP email to the user
-  const emailHtml = `<p>Your OTP code is <strong>${otp}</strong>. It will expire in 5 minutes.</p>`;
-  await sendOtp({
-    to: delivery.email,
-    subject: "Your OTP Code",
-    html: emailHtml,
-  });
-
-  res.status(201).json({
-    success: true,
-    message: "Please check your email for the OTP code",
-    deliveryId: delivery._id,
-  });
 });
 
 export const loginDelivery = expressAsyncHandler(async (req, res) => {
@@ -195,7 +200,7 @@ export const resetPassword = expressAsyncHandler(async (req, res) => {
 
   const user = await Delivery.findById(deliveryId);
 
-  if (!user) { 
+  if (!user) {
     throw new Error({ msg: "user not found" });
   }
 
@@ -221,3 +226,90 @@ export const resetPassword = expressAsyncHandler(async (req, res) => {
 
   res.status(200).json({ msg: "Password successfully changed", success: true });
 });
+
+// get delivery person's details
+
+export const getDeliveryPersonDetails = async (req, res) => {
+  const { deliveryId } = req.params;
+  try {
+    const deliveryPerson = await Delivery.findById(deliveryId, "-password");
+    res.status(200).json({ deliveryPerson, success: true });
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(500)
+      .json({ message: "server error", error: error.message });
+  }
+};
+
+// update delivery person profile
+
+export const updateDeliveryPersonProfile = async (req, res) => {
+  try {
+    const {
+      firstName,
+      lastName,
+      email,
+      photo,
+      phoneNumber,
+      address,
+      vehicleType,
+      bio,
+      status,
+    } = req.body;
+
+    const { deliveryId } = req.params;
+
+    // const photoImage =
+    //   req.files && req.files.photo ? req.files.photo.tempFilePath : null;
+
+    // // if (!photoImage) {
+    // //   return res.status(400).json({
+    // //     success: false,
+    // //     message: "No photo file received. Please upload a photo.",
+    // //   });
+    // // }
+
+    // let photoImgUrl = null;
+
+    // // Upload photo to Cloudinary
+    // const photoImg = await cloudinary.uploader.upload(photoImage, {
+    //   folder: "food-ninja",
+    //   use_filename: true,
+    //   resource_type: "auto",
+    // });
+
+    // // Get the URL of the uploaded photo
+    // photoImgUrl = photoImg.secure_url;
+
+    // // Delete the temporary uploaded file after successful upload
+    // fs.unlinkSync(photoImage);
+
+    const updatedProfile = await Delivery.findByIdAndUpdate(
+      deliveryId,
+      {
+        firstName,
+        lastName,
+        email,
+        // photo: photoImgUrl,
+        phoneNumber,
+        address,
+        vehicleType,
+        bio,
+        status,
+      },
+      { new: true, runValidators: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Profile updated successfully",
+      data: updatedProfile,
+    });
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(500)
+      .json({ message: "server error", error: error.message });
+  }
+};

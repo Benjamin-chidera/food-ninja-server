@@ -58,15 +58,17 @@ const DeliverySchema = new Schema(
     },
 
     status: {
-      type: String,
-      enum: ["Active", "Inactive"],
-      default: "Inactive",
+      type: Boolean,
+      enum: ["true", "false"],
+      default: "false",
     },
 
     rating: {
       type: Number,
       default: 0,
     },
+
+    photo: String,
   },
 
   {

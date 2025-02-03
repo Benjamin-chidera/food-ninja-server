@@ -1,9 +1,14 @@
 import { Router } from "express";
-import { getAdminOrders } from "../../controller/admin/adminOrderController.js";
+import {
+  getAdminOrders,
+  getSingleOrder,
+  updateOrderStatus,
+} from "../../controller/admin/adminOrderController.js";
 
 const router = Router();
 
 router.get("/orders", getAdminOrders);
+router.get("/orders/:id", getSingleOrder);
+router.patch("/orders/:id", updateOrderStatus);
 
-
-export const AdminOrderRouter = router;  
+export const AdminOrderRouter = router;
